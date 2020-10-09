@@ -8,7 +8,7 @@
 use crate::{txins::*, txouts::*, Error};
 
 use bitcoin::{
-    consensus::encode::{Decodable, Encodable, Error as EncodeError},
+    consensus::encode::{deserialize, Encodable, Error as EncodeError},
     hashes::{hash160::Hash as Hash160, Hash},
     util::{
         bip143::SigHashCache,
@@ -21,7 +21,7 @@ use bitcoin::{
 };
 use miniscript::{BitcoinSig, MiniscriptKey, Satisfier, ToPublicKey};
 
-use serde::de::{self, Deserialize, Deserializer, SeqAccess, Visitor};
+use serde::de::{self, Deserialize, Deserializer};
 use serde::ser::{self, Serialize, SerializeSeq, Serializer};
 
 use std::collections::{BTreeMap, HashMap};
@@ -398,45 +398,11 @@ macro_rules! impl_revault_transaction {
             where
                 D: Deserializer<'de>,
             {
-                struct RevaultTxVisitor;
+                let raw_psbt = Vec::<u8>::deserialize(deserializer)?;
 
-                impl<'a> Visitor<'a> for RevaultTxVisitor {
-                    type Value = Vec<u8>;
+                let psbt: Psbt = deserialize(&raw_psbt).map_err(de::Error::custom)?;
 
-                    // Required method
-                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                        let name = std::any::type_name::<$transaction_name>();
-                        write!(formatter, "a serialized {} as a Vec<u8>", name)
-                    }
-
-                    // The deserializer found a sequence, so map that into the serde data model as a vector
-                    fn visit_seq<V>(self, mut visitor: V) -> Result<Vec<u8>, V::Error>
-                    where
-                        V: SeqAccess<'a>,
-                    {
-                        let mut vec = Vec::new();
-
-                        while let Some(elem) = visitor.next_element()? {
-                            vec.push(elem);
-                        }
-
-                        Ok(vec)
-                    }
-                }
-
-                // Turn this into a rust vector with deserialize_seq()
-                let vec: Vec<u8> = deserializer
-                    .deserialize_seq(RevaultTxVisitor)
-                    .expect("Deserialization Error");
-
-                // Then construct the PSBT with consensus_decode()
-                let res: Result<Psbt, EncodeError> = Decodable::consensus_decode(&vec[..]);
-
-                // Return an instance of the revault transaction
-                match res {
-                    Ok(psbt) => Ok($transaction_name(psbt)),
-                    Err(e) => Err(de::Error::custom(format!("Deserialization Error {:?}", e))),
-                }
+                Ok($transaction_name(psbt))
             }
         }
     };
