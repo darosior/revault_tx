@@ -22,7 +22,7 @@ use bitcoin::{
 use miniscript::{BitcoinSig, MiniscriptKey, Satisfier, ToPublicKey};
 
 use serde::de::{self, Deserialize, Deserializer};
-use serde::ser::{self, Serialize, SerializeSeq, Serializer};
+use serde::ser::{self, Serialize, Serializer};
 
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
@@ -378,18 +378,9 @@ macro_rules! impl_revault_transaction {
             where
                 S: Serializer,
             {
-                let mut buff = Vec::<u8>::new();
-                match self.inner_tx().consensus_encode(&mut buff) {
-                    Ok(_) => {
-                        // Follow 3 step pattern to serialize a rust data structure into the serde data model as a vector.
-                        let mut seq = serializer.serialize_seq(Some(buff.len()))?;
-                        for e in buff {
-                            seq.serialize_element(&e)?;
-                        }
-                        seq.end()
-                    }
-                    Err(e) => Err(ser::Error::custom(format!("Serialization Error {:?}", e))),
-                }
+                self.as_psbt_serialized()
+                    .map_err(ser::Error::custom)
+                    .and_then(|psbt_ser| serializer.serialize_bytes(&psbt_ser))
             }
         }
 
