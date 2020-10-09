@@ -8,7 +8,7 @@
 use crate::{txins::*, txouts::*, Error};
 
 use bitcoin::{
-    consensus::encode::{deserialize, Encodable, Error as EncodeError},
+    consensus::encode::{Encodable, Error as EncodeError},
     hashes::{hash160::Hash as Hash160, Hash},
     util::{
         bip143::SigHashCache,
@@ -21,7 +21,11 @@ use bitcoin::{
 };
 use miniscript::{BitcoinSig, MiniscriptKey, Satisfier, ToPublicKey};
 
+#[cfg(feature = "use-serde")]
+use bitcoin::consensus::encode::deserialize;
+#[cfg(feature = "use-serde")]
 use serde::de::{self, Deserialize, Deserializer};
+#[cfg(feature = "use-serde")]
 use serde::ser::{self, Serialize, Serializer};
 
 use std::collections::{BTreeMap, HashMap};
@@ -373,6 +377,7 @@ macro_rules! impl_revault_transaction {
             }
         }
 
+        #[cfg(feature = "use-serde")]
         impl Serialize for $transaction_name {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where
@@ -384,6 +389,7 @@ macro_rules! impl_revault_transaction {
             }
         }
 
+        #[cfg(feature = "use-serde")]
         impl<'de> Deserialize<'de> for $transaction_name {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where
@@ -735,6 +741,7 @@ mod tests {
         descriptor::{DescriptorPublicKey, DescriptorXPub},
         Descriptor, ToPublicKey,
     };
+    #[cfg(feature = "use-serde")]
     use serde_json;
 
     fn get_random_privkey(rng: &mut SmallRng) -> bip32::ExtendedPrivKey {
@@ -1180,41 +1187,45 @@ mod tests {
         emergency_tx.hex().expect("Hex repr emergency_tx");
         feebump_tx.hex().expect("Hex repr feebump_tx");
 
-        // Test the Serialize and Deserialize trait implementations for each
-        // transaction type using serde_json's Serializer and Deserializer.
-        let serialized_vault_tx = serde_json::to_string(&vault_tx).unwrap();
-        let deserialized_vault_tx = serde_json::from_str(&serialized_vault_tx).unwrap();
+        #[cfg(feature = "use-serde")]
+        {
+            // Test the Serialize and Deserialize trait implementations for each
+            // transaction type using serde_json's Serializer and Deserializer.
+            let serialized_vault_tx = serde_json::to_string(&vault_tx).unwrap();
+            let deserialized_vault_tx = serde_json::from_str(&serialized_vault_tx).unwrap();
 
-        assert_eq!(vault_tx, deserialized_vault_tx);
+            assert_eq!(vault_tx, deserialized_vault_tx);
 
-        let serialized_feebump_tx = serde_json::to_string(&feebump_tx).unwrap();
-        let deserialized_feebump_tx = serde_json::from_str(&serialized_feebump_tx).unwrap();
+            let serialized_feebump_tx = serde_json::to_string(&feebump_tx).unwrap();
+            let deserialized_feebump_tx = serde_json::from_str(&serialized_feebump_tx).unwrap();
 
-        assert_eq!(feebump_tx, deserialized_feebump_tx);
+            assert_eq!(feebump_tx, deserialized_feebump_tx);
 
-        let serialized_emergency_tx = serde_json::to_string(&emergency_tx).unwrap();
-        let deserialized_emergency_tx = serde_json::from_str(&serialized_emergency_tx).unwrap();
+            let serialized_emergency_tx = serde_json::to_string(&emergency_tx).unwrap();
+            let deserialized_emergency_tx = serde_json::from_str(&serialized_emergency_tx).unwrap();
 
-        assert_eq!(emergency_tx, deserialized_emergency_tx);
+            assert_eq!(emergency_tx, deserialized_emergency_tx);
 
-        let serialized_unvault_tx = serde_json::to_string(&unvault_tx).unwrap();
-        let deserialized_unvault_tx = serde_json::from_str(&serialized_unvault_tx).unwrap();
+            let serialized_unvault_tx = serde_json::to_string(&unvault_tx).unwrap();
+            let deserialized_unvault_tx = serde_json::from_str(&serialized_unvault_tx).unwrap();
 
-        assert_eq!(unvault_tx, deserialized_unvault_tx);
+            assert_eq!(unvault_tx, deserialized_unvault_tx);
 
-        let serialized_cancel_tx = serde_json::to_string(&cancel_tx).unwrap();
-        let deserialized_cancel_tx = serde_json::from_str(&serialized_cancel_tx).unwrap();
+            let serialized_cancel_tx = serde_json::to_string(&cancel_tx).unwrap();
+            let deserialized_cancel_tx = serde_json::from_str(&serialized_cancel_tx).unwrap();
 
-        assert_eq!(cancel_tx, deserialized_cancel_tx);
+            assert_eq!(cancel_tx, deserialized_cancel_tx);
 
-        let serialized_unemergency_tx = serde_json::to_string(&unemergency_tx).unwrap();
-        let deserialized_unemergency_tx = serde_json::from_str(&serialized_unemergency_tx).unwrap();
+            let serialized_unemergency_tx = serde_json::to_string(&unemergency_tx).unwrap();
+            let deserialized_unemergency_tx =
+                serde_json::from_str(&serialized_unemergency_tx).unwrap();
 
-        assert_eq!(unemergency_tx, deserialized_unemergency_tx);
+            assert_eq!(unemergency_tx, deserialized_unemergency_tx);
 
-        let serialized_spend_tx = serde_json::to_string(&spend_tx).unwrap();
-        let deserialized_spend_tx = serde_json::from_str(&serialized_spend_tx).unwrap();
+            let serialized_spend_tx = serde_json::to_string(&spend_tx).unwrap();
+            let deserialized_spend_tx = serde_json::from_str(&serialized_spend_tx).unwrap();
 
-        assert_eq!(spend_tx, deserialized_spend_tx);
+            assert_eq!(spend_tx, deserialized_spend_tx);
+        }
     }
 }
