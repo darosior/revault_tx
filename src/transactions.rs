@@ -1222,7 +1222,6 @@ mod tests {
         cancel_tx.hex().expect("Hex repr cancel_tx");
         emergency_tx.hex().expect("Hex repr emergency_tx");
         feebump_tx.hex().expect("Hex repr feebump_tx");
-
     }
 
     #[test]
@@ -1286,7 +1285,7 @@ mod tests {
                 origin: None,
                 xpub: feebump_xpub,
                 derivation_path: bip32::DerivationPath::from(vec![]),
-                is_wildcard: false, 
+                is_wildcard: false,
             }));
         let raw_feebump_tx = Transaction {
             version: 2,
@@ -1339,8 +1338,7 @@ mod tests {
             RBF_SEQUENCE,
         );
         let revault_txo = VaultTxOut::new(6700, &vault_descriptor);
-        let cancel_tx =
-            CancelTransaction::new(unvault_txin, Some(feebump_txin), revault_txo, 0);
+        let cancel_tx = CancelTransaction::new(unvault_txin, Some(feebump_txin), revault_txo, 0);
 
         // Create the second (unvault) emergency transaction
         let unvault_txin = UnvaultTxIn::new(
@@ -1373,7 +1371,7 @@ mod tests {
             0,
         );
 
-        // Test the Serialize and Deserialize trait implementations for each 
+        // Test the Serialize and Deserialize trait implementations for each
         // transaction type using serde_json's Serializer and Deserializer.
         let serialized_vault_tx = serde_json::to_string(&vault_tx).unwrap();
         let deserialized_vault_tx = serde_json::from_str(&serialized_vault_tx).unwrap();
