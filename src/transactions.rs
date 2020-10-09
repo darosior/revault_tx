@@ -1223,10 +1223,191 @@ mod tests {
         emergency_tx.hex().expect("Hex repr emergency_tx");
         feebump_tx.hex().expect("Hex repr feebump_tx");
 
-        // Test serialize method for a transaction
-        let serialized_tx = serde_json::to_string(&vault_tx).unwrap();
-        let deserialized_tx = serde_json::from_str(&serialized_tx).unwrap();
+    }
 
-        assert_eq!(vault_tx, deserialized_tx);
+    #[test]
+    fn test_serde_revault_txs() {
+        // Generate all transactions
+        const CSV_VALUE: u32 = 42;
+
+        let secp = bitcoin::secp256k1::Secp256k1::new();
+
+        // Let's get the 10th key of each
+        let child_number = bip32::ChildNumber::from(10);
+
+        let (
+            (_managers_priv, managers),
+            (_stakeholders_priv, stakeholders),
+            (_cosigners_priv, cosigners),
+        ) = get_participants_sets(&secp);
+
+        // Get the script descriptors for the txos we're going to create
+        let unvault_descriptor = unvault_descriptor(
+            stakeholders.clone(),
+            managers.clone(),
+            managers.len(),
+            cosigners.clone(),
+            CSV_VALUE,
+        )
+        .expect("Unvault descriptor generation error")
+        .derive(child_number);
+        let cpfp_descriptor = unvault_cpfp_descriptor(managers)
+            .expect("Unvault CPFP descriptor generation error")
+            .derive(child_number);
+        let vault_descriptor = vault_descriptor(stakeholders)
+            .expect("Vault descriptor generation error")
+            .derive(child_number);
+
+        // The funding transaction does not matter (random txid from my mempool)
+        let vault_scriptpubkey = vault_descriptor.0.script_pubkey();
+        let vault_raw_tx = Transaction {
+            version: 2,
+            lock_time: 0,
+            input: vec![TxIn {
+                previous_output: OutPoint::from_str(
+                    "39a8212c6a9b467680d43e47b61b8363fe1febb761f9f548eb4a432b2bc9bbec:0",
+                )
+                .unwrap(),
+                ..TxIn::default()
+            }],
+            output: vec![TxOut {
+                value: 360,
+                script_pubkey: vault_scriptpubkey.clone(),
+            }],
+        };
+        let vault_txo = VaultTxOut::new(vault_raw_tx.output[0].value, &vault_descriptor);
+        let vault_tx = VaultTransaction::new(Psbt::from_unsigned_tx(vault_raw_tx).unwrap());
+
+        let mut rng = SmallRng::from_entropy();
+        let feebump_xpriv = get_random_privkey(&mut rng);
+        let feebump_xpub = bip32::ExtendedPubKey::from_private(&secp, &feebump_xpriv);
+        let feebump_descriptor =
+            Descriptor::<DescriptorPublicKey>::Wpkh(DescriptorPublicKey::XPub(DescriptorXPub {
+                origin: None,
+                xpub: feebump_xpub,
+                derivation_path: bip32::DerivationPath::from(vec![]),
+                is_wildcard: false, 
+            }));
+        let raw_feebump_tx = Transaction {
+            version: 2,
+            lock_time: 0,
+            input: vec![TxIn {
+                previous_output: OutPoint::from_str(
+                    "4bb4545bb4bc8853cb03e42984d677fbe880c81e7d95609360eed0d8f45b52f8:0",
+                )
+                .unwrap(),
+                ..TxIn::default()
+            }],
+            output: vec![TxOut {
+                value: 56730,
+                script_pubkey: feebump_descriptor.script_pubkey(),
+            }],
+        };
+        let feebump_txo = FeeBumpTxOut::new(raw_feebump_tx.output[0].clone());
+        let feebump_tx = FeeBumpTransaction::new(Psbt::from_unsigned_tx(raw_feebump_tx).unwrap());
+
+        // Create the first (vault) emergency transaction
+        let vault_txin = VaultTxIn::new(vault_tx.into_outpoint(0), vault_txo.clone(), RBF_SEQUENCE);
+        let feebump_txin = FeeBumpTxIn::new(
+            feebump_tx.into_outpoint(0),
+            feebump_txo.clone(),
+            RBF_SEQUENCE,
+        );
+        let emer_txo = EmergencyTxOut::new(TxOut {
+            value: 450,
+            ..TxOut::default()
+        });
+        let emergency_tx =
+            EmergencyTransaction::new(vault_txin, Some(feebump_txin), emer_txo.clone(), 0);
+
+        // Create the unvaulting transaction
+        let vault_txin = VaultTxIn::new(vault_tx.into_outpoint(0), vault_txo.clone(), u32::MAX);
+        let unvault_txo = UnvaultTxOut::new(7000, &unvault_descriptor);
+        let cpfp_txo = CpfpTxOut::new(330, &cpfp_descriptor);
+        let unvault_tx =
+            UnvaultTransaction::new(vault_txin, unvault_txo.clone(), cpfp_txo.clone(), 0);
+
+        // Create the cancel transaction
+        let unvault_txin = UnvaultTxIn::new(
+            unvault_tx.into_outpoint(0),
+            unvault_txo.clone(),
+            RBF_SEQUENCE,
+        );
+        let feebump_txin = FeeBumpTxIn::new(
+            feebump_tx.into_outpoint(0),
+            feebump_txo.clone(),
+            RBF_SEQUENCE,
+        );
+        let revault_txo = VaultTxOut::new(6700, &vault_descriptor);
+        let cancel_tx =
+            CancelTransaction::new(unvault_txin, Some(feebump_txin), revault_txo, 0);
+
+        // Create the second (unvault) emergency transaction
+        let unvault_txin = UnvaultTxIn::new(
+            unvault_tx.into_outpoint(0),
+            unvault_txo.clone(),
+            RBF_SEQUENCE,
+        );
+        let feebump_txin = FeeBumpTxIn::new(
+            feebump_tx.into_outpoint(0),
+            feebump_txo.clone(),
+            RBF_SEQUENCE,
+        );
+        let unemergency_tx =
+            UnvaultEmergencyTransaction::new(unvault_txin, Some(feebump_txin), emer_txo, 0);
+
+        // Create a spend transaction
+        let unvault_txin = UnvaultTxIn::new(
+            unvault_tx.into_outpoint(0),
+            unvault_txo.clone(),
+            CSV_VALUE - 1,
+        );
+        let spend_txo = ExternalTxOut::new(TxOut {
+            value: 1,
+            ..TxOut::default()
+        });
+
+        let spend_tx = SpendTransaction::new(
+            vec![unvault_txin],
+            vec![SpendTxOut::Destination(spend_txo.clone())],
+            0,
+        );
+
+        // Test the Serialize and Deserialize trait implementations for each 
+        // transaction type using serde_json's Serializer and Deserializer.
+        let serialized_vault_tx = serde_json::to_string(&vault_tx).unwrap();
+        let deserialized_vault_tx = serde_json::from_str(&serialized_vault_tx).unwrap();
+
+        assert_eq!(vault_tx, deserialized_vault_tx);
+
+        let serialized_feebump_tx = serde_json::to_string(&feebump_tx).unwrap();
+        let deserialized_feebump_tx = serde_json::from_str(&serialized_feebump_tx).unwrap();
+
+        assert_eq!(feebump_tx, deserialized_feebump_tx);
+
+        let serialized_emergency_tx = serde_json::to_string(&emergency_tx).unwrap();
+        let deserialized_emergency_tx = serde_json::from_str(&serialized_emergency_tx).unwrap();
+
+        assert_eq!(emergency_tx, deserialized_emergency_tx);
+
+        let serialized_unvault_tx = serde_json::to_string(&unvault_tx).unwrap();
+        let deserialized_unvault_tx = serde_json::from_str(&serialized_unvault_tx).unwrap();
+
+        assert_eq!(unvault_tx, deserialized_unvault_tx);
+
+        let serialized_cancel_tx = serde_json::to_string(&cancel_tx).unwrap();
+        let deserialized_cancel_tx = serde_json::from_str(&serialized_cancel_tx).unwrap();
+
+        assert_eq!(cancel_tx, deserialized_cancel_tx);
+
+        let serialized_unemergency_tx = serde_json::to_string(&unemergency_tx).unwrap();
+        let deserialized_unemergency_tx = serde_json::from_str(&serialized_unemergency_tx).unwrap();
+
+        assert_eq!(unemergency_tx, deserialized_unemergency_tx);
+
+        let serialized_spend_tx = serde_json::to_string(&spend_tx).unwrap();
+        let deserialized_spend_tx = serde_json::from_str(&serialized_spend_tx).unwrap();
+
+        assert_eq!(spend_tx, deserialized_spend_tx);
     }
 }
