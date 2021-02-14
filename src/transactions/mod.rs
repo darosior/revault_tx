@@ -846,6 +846,12 @@ mod tests {
             EmergencyTransaction::new(deposit_txin.clone(), None, emergency_address.clone(), 0)
                 .unwrap();
         assert_eq!(h_emer, emergency_tx_no_feebump);
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_emergency/emer-{}", i),
+            emergency_tx_no_feebump.as_psbt_serialized(),
+        )
+        .unwrap();
 
         // 376 is the witstrip weight of an emer tx (1 segwit input, 1 P2WSH txout), 22 is the feerate is sat/WU
         assert_eq!(
@@ -885,8 +891,20 @@ mod tests {
             Some(child_number),
             SigHashType::AllPlusAnyoneCanPay,
         )?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_emergency/emer-{}", i),
+            emergency_tx_no_feebump.as_psbt_serialized(),
+        )
+        .unwrap();
         // Without feebump it finalizes just fine
         emergency_tx_no_feebump.finalize(&secp)?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_emergency/emer-{}", i),
+            emergency_tx_no_feebump.as_psbt_serialized(),
+        )
+        .unwrap();
 
         let feebump_txin = FeeBumpTxIn::new(
             OutPoint {
@@ -902,6 +920,12 @@ mod tests {
             0,
         )
         .unwrap();
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_emergency/emer-{}", i),
+            emergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         let emergency_tx_sighash_feebump = emergency_tx
             .signature_hash(1, SigHashType::All)
             .expect("Input exists");
@@ -915,6 +939,12 @@ mod tests {
             Some(child_number),
             SigHashType::AllPlusAnyoneCanPay,
         )?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_emergency/emer-{}", i),
+            emergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         satisfy_transaction_input(
             &secp,
             &mut emergency_tx,
@@ -924,7 +954,19 @@ mod tests {
             None,
             SigHashType::All,
         )?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_emergency/emer-{}", i),
+            emergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         emergency_tx.finalize(&secp)?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_unvault/unvault-{}", i),
+            emergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
 
         // Create but don't sign the unvaulting transaction until all revaulting transactions
         // are finalized
@@ -935,6 +977,12 @@ mod tests {
             &der_cpfp_descriptor,
             0,
         )?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_unvault/unvault-{}", i),
+            unvault_tx.as_psbt_serialized(),
+        )
+        .unwrap();
 
         assert_eq!(h_unvault, unvault_tx);
         let unvault_value = unvault_tx.psbt().global.unsigned_tx.output[0].value;
@@ -949,6 +997,12 @@ mod tests {
         let mut cancel_tx_without_feebump =
             CancelTransaction::new(rev_unvault_txin.clone(), None, &der_deposit_descriptor, 0);
         assert_eq!(h_cancel, cancel_tx_without_feebump);
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_cancel/cancel-{}", i),
+            cancel_tx_without_feebump.as_psbt_serialized(),
+        )
+        .unwrap();
         // Keep track of the fees we computed..
         let value_no_feebump = cancel_tx_without_feebump.psbt().global.unsigned_tx.output[0].value;
         // 376 is the witstrip weight of a cancel tx (1 segwit input, 1 P2WSH txout), 22 is the feerate is sat/WU
@@ -968,7 +1022,19 @@ mod tests {
             Some(child_number),
             SigHashType::AllPlusAnyoneCanPay,
         )?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_cancel/cancel-{}", i),
+            cancel_tx_without_feebump.as_psbt_serialized(),
+        )
+        .unwrap();
         cancel_tx_without_feebump.finalize(&secp).unwrap();
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_cancel/cancel-{}", i),
+            cancel_tx_without_feebump.as_psbt_serialized(),
+        )
+        .unwrap();
         // We can reuse the ANYONE_ALL sighash for the one with the feebump input
         let feebump_txin = FeeBumpTxIn::new(
             OutPoint {
@@ -983,6 +1049,12 @@ mod tests {
             &der_deposit_descriptor,
             0,
         );
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_cancel/cancel-{}", i),
+            cancel_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         // It really is a belt-and-suspenders check as the sighash would differ too.
         assert_eq!(
             cancel_tx_without_feebump.psbt().global.unsigned_tx.output[0].value,
@@ -1001,6 +1073,12 @@ mod tests {
             Some(child_number),
             SigHashType::AllPlusAnyoneCanPay,
         )?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_cancel/cancel-{}", i),
+            cancel_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         satisfy_transaction_input(
             &secp,
             &mut cancel_tx,
@@ -1010,7 +1088,19 @@ mod tests {
             None, // No derivation path for the feebump key
             SigHashType::All,
         )?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_cancel/cancel-{}", i),
+            cancel_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         cancel_tx.finalize(&secp)?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_cancel/cancel-{}", i),
+            cancel_tx.as_psbt_serialized(),
+        )
+        .unwrap();
 
         // We can create it without the feebump input
         let mut unemergency_tx_no_feebump = UnvaultEmergencyTransaction::new(
@@ -1019,6 +1109,12 @@ mod tests {
             emergency_address.clone(),
             0,
         );
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_unvault_emergency/unemer-{}", i),
+            unemergency_tx_no_feebump.as_psbt_serialized(),
+        )
+        .unwrap();
         assert_eq!(h_unemer, unemergency_tx_no_feebump);
         // 376 is the witstrip weight of an emer tx (1 segwit input, 1 P2WSH txout), 22 is the feerate is sat/WU
         assert_eq!(
@@ -1037,7 +1133,19 @@ mod tests {
             Some(child_number),
             SigHashType::AllPlusAnyoneCanPay,
         )?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_unvault_emergency/unemer-{}", i),
+            unemergency_tx_no_feebump.as_psbt_serialized(),
+        )
+        .unwrap();
         unemergency_tx_no_feebump.finalize(&secp)?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_unvault_emergency/unemer-{}", i),
+            unemergency_tx_no_feebump.as_psbt_serialized(),
+        )
+        .unwrap();
 
         let feebump_txin = FeeBumpTxIn::new(
             OutPoint {
@@ -1052,6 +1160,12 @@ mod tests {
             emergency_address,
             0,
         );
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_unvault_emergency/unemer-{}", i),
+            unemergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         satisfy_transaction_input(
             &secp,
             &mut unemergency_tx,
@@ -1061,6 +1175,12 @@ mod tests {
             Some(child_number),
             SigHashType::AllPlusAnyoneCanPay,
         )?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_unvault_emergency/unemer-{}", i),
+            unemergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         // We don't have satisfied the feebump input yet!
         // Note that we clone because Miniscript's finalize() will wipe the PSBT input..
         match unemergency_tx.clone().finalize(&secp) {
@@ -1085,7 +1205,19 @@ mod tests {
             None,
             SigHashType::All,
         )?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_unvault_emergency/unemer-{}", i),
+            unemergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         unemergency_tx.finalize(&secp)?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_unvault_emergency/unemer-{}", i),
+            unemergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
 
         // Now we can sign the unvault
         let unvault_tx_sighash = unvault_tx
@@ -1100,8 +1232,20 @@ mod tests {
             Some(child_number),
             SigHashType::All,
         )?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_unvault/unvault-{}", i),
+            unvault_tx.as_psbt_serialized(),
+        )
+        .unwrap();
 
         unvault_tx.finalize(&secp)?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_unvault/unvault-{}", i),
+            unvault_tx.as_psbt_serialized(),
+        )
+        .unwrap();
 
         // Create and sign a spend transaction
         let spend_unvault_txin = unvault_tx.spend_unvault_txin(&der_unvault_descriptor); // Off-by-one csv
@@ -1131,6 +1275,12 @@ mod tests {
             true,
         )
         .expect("Amounts ok");
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_spend/spend-{}", i),
+            spend_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         let spend_tx_sighash = spend_tx
             .signature_hash(0, SigHashType::All)
             .expect("Input exists");
@@ -1147,7 +1297,19 @@ mod tests {
             Some(child_number),
             SigHashType::All,
         )?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_spend/spend-{}", i),
+            spend_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         spend_tx.finalize(&secp)?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_spend/spend-{}", i),
+            spend_tx.as_psbt_serialized(),
+        )
+        .unwrap();
 
         // The spend transaction can also batch multiple unvault txos
         let spend_unvault_txins = vec![
@@ -1215,6 +1377,12 @@ mod tests {
             true,
         )
         .expect("Amounts Ok");
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_spend/spend-{}", i),
+            spend_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         assert_eq!(spend_tx.fees(), fees);
         let mut hash_cache = SigHashCache::new(spend_tx.tx());
         let sighashes: Vec<SigHash> = (0..n_txins)
@@ -1238,9 +1406,21 @@ mod tests {
                     .collect::<Vec<bip32::ExtendedPrivKey>>(),
                 Some(child_number),
                 SigHashType::All,
-            )?
+            )?;
+            let i = fastrand::u32(..);
+            std::fs::write(
+                format!("fuzz/corpus/parse_spend/spend-{}", i),
+                spend_tx.as_psbt_serialized(),
+            )
+            .unwrap();
         }
         spend_tx.finalize(&secp)?;
+        let i = fastrand::u32(..);
+        std::fs::write(
+            format!("fuzz/corpus/parse_spend/spend-{}", i),
+            spend_tx.as_psbt_serialized(),
+        )
+        .unwrap();
 
         #[cfg(feature = "use-serde")]
         {
