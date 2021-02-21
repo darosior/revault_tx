@@ -489,9 +489,10 @@ fn psbt_common_sanity_checks(psbt: Psbt) -> Result<Psbt, PsbtValidationError> {
             return Err(PsbtValidationError::InvalidInputField(input.clone()));
         }
 
-        // Make sure it does not mix finalized and not finalized inputs
+        // Make sure it does not mix finalized and non-finalized inputs or final scripts
+        // and non-final scripts.
         if input.final_script_witness.is_some() {
-            if is_final == Some(false) {
+            if is_final == Some(false) || input.witness_script.is_some() {
                 return Err(PsbtValidationError::PartiallyFinalized);
             }
             is_final = Some(true);
