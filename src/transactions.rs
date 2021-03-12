@@ -128,7 +128,6 @@ pub trait RevaultTransaction: fmt::Debug + Clone + PartialEq {
             .get(input_index)
             .ok_or(InputSatisfactionError::OutOfBounds)?;
 
-        // TODO: maybe cache the cache at some point (for huge spend txs)
         let mut cache = SigHashCache::new(&psbt.global.unsigned_tx);
         let prev_txo = psbtin
             .witness_utxo
@@ -2112,6 +2111,15 @@ mod tests {
         let spend_tx_sighash = spend_tx
             .signature_hash_internal_input(0, SigHashType::All)
             .expect("Input exists");
+        let i = miniscript::bitcoin::secp256k1::rand::thread_rng().next_u32();
+        std::fs::write(
+            format!(
+                "../cosigning_server/fuzz/hfuzz_workspace/process_sign_message/input/spend-{}",
+                i
+            ),
+            emergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         satisfy_transaction_input(
             &secp,
             &mut spend_tx,
@@ -2125,6 +2133,15 @@ mod tests {
             Some(child_number),
             SigHashType::All,
         )?;
+        let i = miniscript::bitcoin::secp256k1::rand::thread_rng().next_u32();
+        std::fs::write(
+            format!(
+                "../cosigning_server/fuzz/hfuzz_workspace/process_sign_message/input/spend-{}",
+                i
+            ),
+            emergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         match spend_tx.finalize(&secp) {
             Err(e) => assert!(
                 // FIXME: uncomment when upgrading miniscript
@@ -2148,6 +2165,15 @@ mod tests {
             true,
         )
         .expect("Amounts ok");
+        let i = miniscript::bitcoin::secp256k1::rand::thread_rng().next_u32();
+        std::fs::write(
+            format!(
+                "../cosigning_server/fuzz/hfuzz_workspace/process_sign_message/input/spend-{}",
+                i
+            ),
+            emergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         let spend_tx_sighash = spend_tx
             .signature_hash_internal_input(0, SigHashType::All)
             .expect("Input exists");
@@ -2164,6 +2190,15 @@ mod tests {
             Some(child_number),
             SigHashType::All,
         )?;
+        let i = miniscript::bitcoin::secp256k1::rand::thread_rng().next_u32();
+        std::fs::write(
+            format!(
+                "../cosigning_server/fuzz/hfuzz_workspace/process_sign_message/input/spend-{}",
+                i
+            ),
+            emergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         spend_tx.finalize(&secp)?;
 
         // The spend transaction can also batch multiple unvault txos
@@ -2231,6 +2266,15 @@ mod tests {
             true,
         )
         .expect("Amounts Ok");
+        let i = miniscript::bitcoin::secp256k1::rand::thread_rng().next_u32();
+        std::fs::write(
+            format!(
+                "../cosigning_server/fuzz/hfuzz_workspace/process_sign_message/input/spend-{}",
+                i
+            ),
+            emergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         assert_eq!(spend_tx.fees(), fees);
         for i in 0..n_txins {
             let spend_tx_sighash = spend_tx
@@ -2250,6 +2294,15 @@ mod tests {
                 SigHashType::All,
             )?
         }
+        let i = miniscript::bitcoin::secp256k1::rand::thread_rng().next_u32();
+        std::fs::write(
+            format!(
+                "../cosigning_server/fuzz/hfuzz_workspace/process_sign_message/input/spend-{}",
+                i
+            ),
+            emergency_tx.as_psbt_serialized(),
+        )
+        .unwrap();
         spend_tx.finalize(&secp)?;
 
         // Test that we can get the hexadecimal representation of each transaction without error
