@@ -1,18 +1,17 @@
 # Revault
 
-[Revault](https://github.com/re-vault/practical-revault/blob/master/revault.pdf) is a
+[Revault](https://github.com/revault/practical-revault/blob/master/revault.pdf) is a
 Bitcoin vault architecture for multi-party situations.
 
-This library allows to derive the Script descriptors given a specific set of participants,
-and to construct transactions and witnesses around them.
+This library defines the Miniscript descriptors and handles PSBT management of
+Revault-specific transactions.
 
 
 # Contributing
 
-Even if the project is still at quite an early stage, you are welcome to contribute
-patches, bug reports, documentation, or thoughts.
+Contributions are very welcome. For general guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-For general guidelines, see [CONTRIBUTING.md](doc/CONTRIBUTING.md).
+Discussions happen either here in issues or at [`#revault` on freenode](https://webchat.freenode.net/).
 
 
 # Licence
